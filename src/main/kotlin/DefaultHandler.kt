@@ -9,6 +9,10 @@ class DefaultHandler(looper: Looper) : Handler {
 		sendMessage(action.toMessage())
 	}
 
+	override fun postDelayed(delayMillis: Long, action: () -> Unit) {
+		sendMessage(action.toMessage(delayMillis))
+	}
+
 	override fun sendMessage(message: Message) {
 		messageQueue.add(message)
 	}
@@ -17,8 +21,11 @@ class DefaultHandler(looper: Looper) : Handler {
 		message.action.invoke()
 	}
 
-	private fun (() -> Unit).toMessage(): Message = DefaultMessage(
-		target = this@DefaultHandler, tag = "todo", action = this, timeMillis = System.currentTimeMillis()
+	private fun (() -> Unit).toMessage(delayMillis: Long? = null): Message = DefaultMessage(
+		target = this@DefaultHandler,
+		tag = "todo",
+		action = this,
+		timeMillis = uptimeMillis() + (delayMillis ?: 0)
 	)
 }
 
@@ -26,7 +33,7 @@ class DefaultMessage(
 	override val target: Handler,
 	override val tag: String,
 	override val action: () -> Unit,
-	override val timeMillis: Long
+	override val timeMillis: Long = uptimeMillis()
 ) : Message {
 	override fun compareTo(other: Message): Int = timeMillis.compareTo(other.timeMillis)
 }

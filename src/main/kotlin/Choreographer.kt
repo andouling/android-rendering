@@ -20,6 +20,8 @@ private const val SKIPPED_FRAME_WARNING_LIMIT = 30
  */
 private const val DEFAULT_FRAME_DELAY: Long = 10
 
+private const val NANOS_PER_MS: Long = 1000000
+
 /**
  * Абстракция над рендерером, управляет шедулингом колбеков.
  * Пример гейм лупа над которым работает хореографер https://gameprogrammingpatterns.com/game-loop.html
@@ -43,7 +45,6 @@ class Choreographer(looper: Looper) {
     private var frameScheduled: Boolean = false
     //todo private var lastFrameTimeNanos: Long = Long.MIN_VALUE
     private val frameIntervalNanos: Long = 1000000000L / REFRESH_RATE //16ms but in nanos
-    //todo only for vSync... private val displayEventsReceiver = DisplayEventsReceiver { frameNanoTime -> doFrame(frameNanoTime) }
     private val actions: MutableList<Action> = mutableListOf()
     private var mLastFrameTimeNanos: Long = 0
 
@@ -52,8 +53,10 @@ class Choreographer(looper: Looper) {
     fun postOnNextFrame(action: () -> Unit) {
         //todo need to use SystemClock.elapsedRealtimeNanos instead in android
         val nextFrameTime: Long = max(
-            TimeUnit.NANOSECONDS.toMillis(mLastFrameTimeNanos) + DEFAULT_FRAME_DELAY, System.currentTimeMillis()
+            TimeUnit.NANOSECONDS.toMillis(mLastFrameTimeNanos) + DEFAULT_FRAME_DELAY,
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime())
         )
+        println("nextFrameMillis = $nextFrameTime, nanos = ${nextFrameTime * NANOS_PER_MS}, now = ${System.nanoTime()}")
         actions += Action(TimeUnit.MILLISECONDS.toNanos(nextFrameTime)) { action.invoke() }
         val msg: Message = ChoreographerMessage.FrameMessage(handler, "frame", action, nextFrameTime)
         handler.sendMessage(msg)
@@ -62,9 +65,9 @@ class Choreographer(looper: Looper) {
     private fun doFrame(intendedFrameTimeNanos: Long) {
         var resultFrameTime: Long = intendedFrameTimeNanos
         //synchronized(mLock) {
-        if (!frameScheduled) {
-            return  // no work to do
-        }
+        //todo what is this???? if (!frameScheduled) {
+            //return  // no work to do
+        //}
         val startNanos: Long = System.nanoTime()
         val jitterNanos: Long = startNanos - intendedFrameTimeNanos
         if (jitterNanos >= frameIntervalNanos) {
@@ -90,11 +93,10 @@ class Choreographer(looper: Looper) {
         //doCallbacks(Choreographer.CALLBACK_COMMIT, resultFrameTime)
     }
 
-    //todo synchronized(mLock) {
+    //todo thread safe
     private fun doCallbacks(frameTimeNanos: Long) {
         val now = System.nanoTime()
         val frameActions = actions.filter { it.scheduledNanoTime <= now }.ifEmpty { return }
-
         frameActions.forEach {
             it.callback.invoke(frameTimeNanos)
             actions.remove(it)
@@ -104,14 +106,13 @@ class Choreographer(looper: Looper) {
     private inner class FrameHandler(looper: Looper) : Handler by DefaultHandler(looper) {
 
         override fun handleMessage(message: Message) {
-            if (message !is ChoreographerMessage) {
-                message.action.invoke()
-            }
             when (message) {
                 is ChoreographerMessage.FrameMessage -> {
                     doFrame(System.nanoTime())
                 }
-                //todo TBD
+                else -> {
+                    message.action.invoke()
+                }
             }
         }
 
@@ -126,7 +127,7 @@ sealed class ChoreographerMessage : Message {
         override val target: Handler,
         override val tag: String,
         override val action: () -> Unit = {},
-        override val timeMillis: Long = System.currentTimeMillis()
+        override val timeMillis: Long = uptimeMillis()
     ) : ChoreographerMessage()
 }
 

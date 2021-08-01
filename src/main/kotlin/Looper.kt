@@ -1,3 +1,5 @@
+import java.util.concurrent.atomic.AtomicBoolean
+
 class Looper {
 
     companion object {
@@ -16,12 +18,19 @@ class Looper {
     }
 
     val messageQueue = MessageQueue()
+    private val exitRequested = AtomicBoolean(false)
 
     fun loop() {
         while (true) {
             val nextMessage: Message = messageQueue.next() ?: return
             nextMessage.target.handleMessage(nextMessage)
         }
+    }
+
+    fun shutdownGracefully() {
+        println("request shutdown")
+        exitRequested.compareAndSet(false, true)
+        messageQueue.exit()
     }
 
 }

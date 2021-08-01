@@ -1,39 +1,53 @@
-import java.util.*
-import java.util.concurrent.locks.Condition
-import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.PriorityBlockingQueue
+
+private val quitMessage: Message = object : Message {
+    override val target: Handler
+        get() = TODO("Not yet implemented")
+    override val tag: String
+        get() = TODO("Not yet implemented")
+    override val action: () -> Unit
+        get() = TODO("Not yet implemented")
+    override val timeMillis: Long
+        get() = TODO("Not yet implemented")
+
+    override fun compareTo(other: Message): Int {
+        return timeMillis.compareTo(other.timeMillis)
+    }
+}
 
 /**
  * todo doc
- * Класс с наивной реализацией тредсейфности.
  */
 class MessageQueue {
 
-    private val lock = ReentrantLock()
-    private val isEmpty: Condition = lock.newCondition()
-
-    //todo replace with my fucking awesome queue implementation with O(1) for all operations
-    private val queue: LinkedList<Message> = LinkedList()
+    /**
+     * Используется структуда данных minHeap чтобы обеспечить сортировку по зашедуленному времени экшена
+     */
+    private val queue: BlockingQueue<Message> = PriorityBlockingQueue(16) { current, other ->
+        current.timeMillis.compareTo(other.timeMillis)
+    }
 
     fun add(message: Message) {
-        lock.lock()
-        try {
-            queue.add(message)
-            //todo неоптимальная сортировочка на каждую вставку. TODO: запилить свою реализацию очереди
-            queue.sort()
-            isEmpty.signalAll()
-        } finally {
-            lock.unlock()
-        }
+        queue.add(message)
     }
 
     fun next(): Message? {
-        if (queue.isEmpty()) {
-            //todo re-acquire
-            isEmpty.await()
-        }
-
-        //ждем пока придет время обработать сообщение. Ждем без делея ибо может появиться новый элемент в любое время.
-        while (queue.peek().timeMillis <= System.currentTimeMillis());
+        var currentMessage: Message?
+        println("start ${uptimeMillis()}")
+        do {
+            currentMessage = queue.peek()
+            if (currentMessage == quitMessage) {
+                return null
+            }
+            // ждем пока придет время обработать сообщение. Ждем без делея ибо может появиться новый элемент в любое время.
+        } while (currentMessage == null || currentMessage.timeMillis > uptimeMillis())
+        //Берем минимальный, даже если успели вставить элемент до того как мы перестали крутиться по циклу
+        println("poll ${uptimeMillis()}")
         return queue.poll()
+    }
+
+    fun exit() {
+        queue.add(quitMessage)
     }
 }
