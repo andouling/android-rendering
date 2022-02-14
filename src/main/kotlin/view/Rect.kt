@@ -1,19 +1,16 @@
 package view
 
 import Specs
-import javax.swing.JPanel
+import java.awt.Graphics
 
 class Rect : View(Specs(300, 300)) {
 
     override fun onMeasure(parentSpecs: Specs) {
-
+        //match parent behavior
+        measuredSpecs = parentSpecs.copy()
     }
 
-    override fun onLayout(layoutSpecs: LayoutSpecs) {
-
-    }
-
-    override fun onDraw(canvas: JPanel) {
-
+    override fun onDraw(canvas: Graphics) {
+        canvas.drawRect(0, 0, measuredSpecs!!.width, measuredSpecs!!.height)
     }
 }

@@ -31,7 +31,7 @@ private const val NANOS_PER_MS: Long = 1000000
  * нажатий и тд
  * Имеет очередь traversals колбеков, которые шедулят пользователи([ViewRootImpl]) и которые poll'ятся при каждом кадре
  */
-class Choreographer(looper: Looper) {
+class Choreographer private constructor(looper: Looper) {
 
     companion object {
         private val threadChoreographer: ThreadLocal<Choreographer> = ThreadLocal.withInitial {
@@ -43,17 +43,17 @@ class Choreographer(looper: Looper) {
     }
 
     private var frameScheduled: Boolean = false
-    //todo private var lastFrameTimeNanos: Long = Long.MIN_VALUE
     private val frameIntervalNanos: Long = 1000000000L / REFRESH_RATE //16ms but in nanos
     private val actions: MutableList<Action> = mutableListOf()
-    private var mLastFrameTimeNanos: Long = 0
+    private var lastFrameTimeNanos: Long = 0
 
     private val handler = FrameHandler(looper)
 
+    //todo покрыть синхронизацией, ибо эта штука может вызываться из другого потока
     fun postOnNextFrame(action: () -> Unit) {
         //todo need to use SystemClock.elapsedRealtimeNanos instead in android
         val nextFrameTime: Long = max(
-            TimeUnit.NANOSECONDS.toMillis(mLastFrameTimeNanos) + DEFAULT_FRAME_DELAY,
+            TimeUnit.NANOSECONDS.toMillis(lastFrameTimeNanos) + DEFAULT_FRAME_DELAY,
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime())
         )
         println("nextFrameMillis = $nextFrameTime, nanos = ${nextFrameTime * NANOS_PER_MS}, now = ${System.nanoTime()}")
@@ -62,12 +62,9 @@ class Choreographer(looper: Looper) {
         handler.sendMessage(msg)
     }
 
+    //todo сюда накинуть
     private fun doFrame(intendedFrameTimeNanos: Long) {
         var resultFrameTime: Long = intendedFrameTimeNanos
-        //synchronized(mLock) {
-        //todo what is this???? if (!frameScheduled) {
-            //return  // no work to do
-        //}
         val startNanos: Long = System.nanoTime()
         val jitterNanos: Long = startNanos - intendedFrameTimeNanos
         if (jitterNanos >= frameIntervalNanos) {

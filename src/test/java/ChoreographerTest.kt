@@ -1,4 +1,3 @@
-import org.junit.jupiter.api.Test
 
 class ChoreographerTest {
 
@@ -6,7 +5,6 @@ class ChoreographerTest {
     val choreographer = Choreographer(looper)
     var frameNumber = 1
 
-    @Test
     fun tekitounaTesuto() {
         choreographer.postOnNextFrame {
             println("FrameNumber ${frameNumber++}")

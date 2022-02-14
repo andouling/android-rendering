@@ -29,7 +29,7 @@ class DefaultHandler(looper: Looper) : Handler {
 	)
 }
 
-class DefaultMessage(
+open class DefaultMessage(
 	override val target: Handler,
 	override val tag: String,
 	override val action: () -> Unit,
@@ -37,3 +37,5 @@ class DefaultMessage(
 ) : Message {
 	override fun compareTo(other: Message): Int = timeMillis.compareTo(other.timeMillis)
 }
+
+fun Handler(looper: Looper = Looper.myLooper): Handler = DefaultHandler(looper)

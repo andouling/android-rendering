@@ -2,19 +2,15 @@ package view
 
 import Choreographer
 import Specs
+import javax.swing.JPanel
 
 class ViewRootImpl(
-    val windowSpecs: Specs
+    val windowSpecs: Specs,
+    val panel: JPanel
 ) : ViewParent {
 
     private val choreographer: Choreographer = Choreographer.getInstance()
     var view: View? = null
-        set(rootView) {
-            if (field != null) {
-                return
-            }
-            field = rootView
-        }
 
     override fun requestLayout() {
         TODO("Not yet implemented")
@@ -38,7 +34,6 @@ class ViewRootImpl(
         val hostView: View = view ?: return
         view?.measure(windowSpecs)
         view?.layout(LayoutSpecs(0, 0, hostView.measuredSpecs!!.width, hostView.measuredSpecs!!.height))
-        //todo threadedRenderer?? view?.draw()
+        view?.draw(panel.graphics)//todo threadedRenderer?? view?.draw()
     }
-
 }

@@ -23,6 +23,7 @@ class Looper {
     fun loop() {
         while (true) {
             val nextMessage: Message = messageQueue.next() ?: return
+            //типа диспатча
             nextMessage.target.handleMessage(nextMessage)
         }
     }

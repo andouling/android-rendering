@@ -1,24 +1,8 @@
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.PriorityBlockingQueue
 
-private val quitMessage: Message = object : Message {
-    override val target: Handler
-        get() = TODO("Not yet implemented")
-    override val tag: String
-        get() = TODO("Not yet implemented")
-    override val action: () -> Unit
-        get() = TODO("Not yet implemented")
-    override val timeMillis: Long
-        get() = TODO("Not yet implemented")
+object QuitMessage : DefaultMessage(Handler(Looper.myLooper), "quit", {}, 0)
 
-    override fun compareTo(other: Message): Int {
-        return timeMillis.compareTo(other.timeMillis)
-    }
-}
-
-/**
- * todo doc
- */
 class MessageQueue {
 
     /**
@@ -36,8 +20,9 @@ class MessageQueue {
         var currentMessage: Message?
         println("start ${uptimeMillis()}")
         do {
+            //todo тута вот засинхронайзить
             currentMessage = queue.peek()
-            if (currentMessage == quitMessage) {
+            if (currentMessage is QuitMessage) {
                 return null
             }
             // ждем пока придет время обработать сообщение. Ждем без делея ибо может появиться новый элемент в любое время.
@@ -48,6 +33,6 @@ class MessageQueue {
     }
 
     fun exit() {
-        queue.add(quitMessage)
+        queue.add(QuitMessage)
     }
 }
